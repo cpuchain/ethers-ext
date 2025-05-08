@@ -1,0 +1,56 @@
+const path = require('path');
+const { BannerPlugin } = require('webpack');
+
+const config = {
+    mode: 'production',
+    module: {
+        rules: [
+            {
+                test: /\.ts?$/,
+                loader: 'esbuild-loader',
+                options: {
+                    loader: 'ts',
+                    target: 'ES2022',
+                }
+            }
+        ]
+    },
+    entry: './src/index.ts',
+    output: {
+        filename: 'ethExt.umd.min.js',
+        path: path.resolve(__dirname, './lib'),
+        library: 'ethExt',
+        libraryTarget: 'umd'
+    },
+    plugins: [
+        new BannerPlugin({
+            banner: `if (!globalThis.process?.browser) {
+    globalThis.process = { browser: true, env: {}, };
+}`,
+            raw: true,
+        }),
+    ],
+    resolve: {
+        extensions: ['.tsx', '.ts', '.js'],
+        alias: {
+            crypto: false,
+            ethers: false,
+        },
+    },
+};
+
+module.exports = [
+    config,
+    {
+        ...config,
+        output: {
+            filename: 'ethExt.umd.js',
+            path: path.resolve(__dirname, './lib'),
+            library: 'ethExt',
+            libraryTarget: 'umd'
+        },
+        optimization: {
+            minimize: false,
+        },
+    }
+]
