@@ -34,6 +34,8 @@ Common functions used with ethers.js / idb / webcrypto
 
 - [] Port for Viem
 
+- [] Network that checks if common contracts (Multicall, OpGasPriceOracle) exists
+
 ### Quick Start
 
 ```ts

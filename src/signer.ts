@@ -78,7 +78,10 @@ export async function populateTransaction(
                 tx.type = 2;
             }
 
-            const maxPriorityFeePerGas = customPriorityFee || feeData.maxPriorityFeePerGas || 0n;
+            const maxPriorityFeePerGas =
+                typeof tx.maxPriorityFeePerGas === 'bigint'
+                    ? (tx.maxPriorityFeePerGas as bigint)
+                    : (customPriorityFee ?? (feeData.maxPriorityFeePerGas || 0n));
             const maxFeePerGas =
                 feeData.maxFeePerGas <= maxPriorityFeePerGas
                     ? maxPriorityFeePerGas + 10n
