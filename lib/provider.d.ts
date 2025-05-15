@@ -1,6 +1,6 @@
-import type { FeeData, Network, Networkish, FetchRequest, JsonRpcApiProviderOptions, PerformActionRequest, JsonRpcProvider } from 'ethers';
+import type { Network, Networkish, FetchRequest, JsonRpcApiProviderOptions, PerformActionRequest, JsonRpcProvider } from 'ethers';
 import { Multicall } from './typechain';
-declare const ethJsonRpcProvider: typeof JsonRpcProvider;
+declare const ethJsonRpcProvider: typeof JsonRpcProvider, ethFeeData: typeof import("ethers").FeeData;
 export interface MulticallResult {
     status: boolean;
     data: string;
@@ -14,8 +14,18 @@ export interface MulticallHandle {
     reject: (error: any) => void;
     resolved: boolean;
 }
+export declare class FeeDataExt extends ethFeeData {
+    readonly maxPriorityFeePerGasSlow: null | bigint;
+    readonly maxPriorityFeePerGasMedium: null | bigint;
+    constructor(gasPrice?: null | bigint, maxFeePerGas?: null | bigint, maxPriorityFeePerGas?: null | bigint, maxPriorityFeePerGasSlow?: null | bigint, maxPriorityFeePerGasMedium?: null | bigint);
+    /**
+     *  Returns a JSON-friendly value.
+     */
+    toJSON(): any;
+}
 export interface ProviderOptions extends JsonRpcApiProviderOptions {
     chainId?: bigint | number;
+    feeHistory?: boolean;
     multicall?: string;
     multicallAllowFailure?: boolean;
     multicallMaxCount?: number;
@@ -29,6 +39,7 @@ export interface ProviderOptions extends JsonRpcApiProviderOptions {
 export declare class Provider extends ethJsonRpcProvider {
     #private;
     staticNetwork: Promise<Network>;
+    feeHistory: boolean;
     subProvider: Promise<JsonRpcProvider>;
     multicall: Promise<Multicall>;
     multicallAllowFailure: boolean;
@@ -47,7 +58,7 @@ export declare class Provider extends ethJsonRpcProvider {
      * Note that in some networks (like L2), maxFeePerGas can be smaller than maxPriorityFeePerGas and if so,
      * using the value as is could throw an error from RPC as maxFeePerGas should be always bigger than maxPriorityFeePerGas
      */
-    getFeeData(): Promise<FeeData>;
+    getFeeData(): Promise<FeeDataExt>;
     /**
      * Multicaller
      */

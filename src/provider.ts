@@ -1,5 +1,4 @@
 import type {
-    FeeData,
     Network,
     Networkish,
     FetchRequest,
@@ -10,8 +9,15 @@ import type {
 import { ethers, assert } from './ethers';
 import { Multicall, Multicall__factory } from './typechain';
 import { MULTICALL_ADDRESS } from './multicall';
+import { formatFeeHistory } from './feeEstimator';
 
-const { AbiCoder, JsonRpcProvider: ethJsonRpcProvider, Network: ethNetwork, FeeData: ethFeeData } = ethers;
+const {
+    AbiCoder,
+    JsonRpcProvider: ethJsonRpcProvider,
+    Network: ethNetwork,
+    FeeData: ethFeeData,
+    defineProperties,
+} = ethers;
 
 export interface MulticallResult {
     status: boolean;
@@ -26,8 +32,61 @@ export interface MulticallHandle {
     resolved: boolean;
 }
 
+function toJson(value: null | bigint): null | string {
+    if (value == null) {
+        return null;
+    }
+    return value.toString();
+}
+
+export class FeeDataExt extends ethFeeData {
+    readonly maxPriorityFeePerGasSlow!: null | bigint;
+
+    readonly maxPriorityFeePerGasMedium!: null | bigint;
+
+    constructor(
+        gasPrice?: null | bigint,
+        maxFeePerGas?: null | bigint,
+        maxPriorityFeePerGas?: null | bigint,
+        maxPriorityFeePerGasSlow?: null | bigint,
+        maxPriorityFeePerGasMedium?: null | bigint,
+    ) {
+        super(gasPrice, maxFeePerGas, maxPriorityFeePerGas);
+
+        defineProperties<FeeDataExt>(this, {
+            gasPrice: typeof gasPrice === 'bigint' ? (gasPrice as bigint) : null,
+            maxFeePerGas: typeof maxFeePerGas === 'bigint' ? (maxFeePerGas as bigint) : null,
+            maxPriorityFeePerGas:
+                typeof maxPriorityFeePerGas === 'bigint' ? (maxPriorityFeePerGas as bigint) : null,
+            maxPriorityFeePerGasSlow:
+                typeof maxPriorityFeePerGasSlow === 'bigint' ? (maxPriorityFeePerGasSlow as bigint) : null,
+            maxPriorityFeePerGasMedium:
+                typeof maxPriorityFeePerGasMedium === 'bigint'
+                    ? (maxPriorityFeePerGasMedium as bigint)
+                    : null,
+        });
+    }
+
+    /**
+     *  Returns a JSON-friendly value.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toJSON(): any {
+        return {
+            _type: 'FeeData',
+            gasPrice: toJson(this.gasPrice),
+            maxFeePerGas: toJson(this.maxFeePerGas),
+            maxPriorityFeePerGas: toJson(this.maxPriorityFeePerGas),
+            maxPriorityFeePerGasSlow: toJson(this.maxPriorityFeePerGasSlow),
+            maxPriorityFeePerGasMedium: toJson(this.maxPriorityFeePerGasMedium),
+        };
+    }
+}
+
 export interface ProviderOptions extends JsonRpcApiProviderOptions {
     chainId?: bigint | number;
+
+    feeHistory?: boolean;
 
     multicall?: string;
     multicallAllowFailure?: boolean;
@@ -44,6 +103,9 @@ export class Provider extends ethJsonRpcProvider {
     staticNetwork: Promise<Network>;
     #network?: Network;
 
+    // Fetch feeHistory
+    feeHistory: boolean;
+
     // Provider without multicall capabilities
     subProvider: Promise<JsonRpcProvider>;
     multicall: Promise<Multicall>;
@@ -57,6 +119,8 @@ export class Provider extends ethJsonRpcProvider {
 
     constructor(url?: string | FetchRequest, network?: Networkish, options?: ProviderOptions) {
         super(url, network, options);
+
+        this.feeHistory = options?.feeHistory ?? false;
 
         this.staticNetwork = (async () => {
             if (network) {
@@ -109,13 +173,13 @@ export class Provider extends ethJsonRpcProvider {
      * Note that in some networks (like L2), maxFeePerGas can be smaller than maxPriorityFeePerGas and if so,
      * using the value as is could throw an error from RPC as maxFeePerGas should be always bigger than maxPriorityFeePerGas
      */
-    async getFeeData(): Promise<FeeData> {
-        const [maxFeePerGas, maxPriorityFeePerGas, gasPrice] = await Promise.all([
-            (async () => {
-                const block = await this.getBlock('latest');
-
-                return block?.baseFeePerGas || null;
-            })(),
+    async getFeeData(): Promise<FeeDataExt> {
+        const [
+            gasPrice,
+            maxFeePerGas,
+            maxPriorityFeePerGas,
+            [maxPriorityFeePerGasMedium, maxPriorityFeePerGasSlow],
+        ] = await Promise.all([
             (async () => {
                 try {
                     return BigInt(await this.send('eth_gasPrice', []));
@@ -124,15 +188,43 @@ export class Provider extends ethJsonRpcProvider {
                 }
             })(),
             (async () => {
+                const block = await this.getBlock('latest');
+
+                return block?.baseFeePerGas ?? null;
+            })(),
+            (async () => {
                 try {
-                    return BigInt(await this.provider.send('eth_maxPriorityFeePerGas', []));
+                    return BigInt(await this.send('eth_maxPriorityFeePerGas', []));
                 } catch {
                     return 0n;
                 }
             })(),
+            (async () => {
+                try {
+                    if (!this.feeHistory) {
+                        return [null, null];
+                    }
+
+                    const blocks = 10;
+                    const { priorityFeePerGasAvg } = formatFeeHistory(
+                        await this.send('eth_feeHistory', [blocks, 'pending', [10, 25]]),
+                        blocks,
+                    );
+
+                    return [priorityFeePerGasAvg[0], priorityFeePerGasAvg[1]];
+                } catch {
+                    return [null, null];
+                }
+            })(),
         ]);
 
-        return new ethFeeData(gasPrice, maxFeePerGas, maxPriorityFeePerGas);
+        return new FeeDataExt(
+            gasPrice,
+            maxFeePerGas,
+            maxPriorityFeePerGas,
+            maxPriorityFeePerGasMedium,
+            maxPriorityFeePerGasSlow,
+        );
     }
 
     /**

@@ -1,6 +1,6 @@
 {
     "name": "ethers-ext",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Common functions used with ethers.js / idb / webcrypto",
     "license": "MIT",
     "author": "CPUchain",
@@ -34,13 +34,13 @@
         "@typechain/hardhat": "^9.1.0",
         "@types/chai": "^5.2.2",
         "@types/mocha": "^10.0.10",
-        "@types/node": "^22.15.14",
+        "@types/node": "^22.15.18",
         "chai": "4.5.0",
         "esbuild-loader": "^4.3.0",
-        "hardhat": "^2.23.0",
+        "hardhat": "^2.24.0",
         "hardhat-gas-reporter": "^2.2.3",
         "idb": "^8.0.3",
-        "solidity-coverage": "^0.8.15",
+        "solidity-coverage": "^0.8.16",
         "ts-node": "^10.9.2",
         "tsc": "^2.0.4",
         "typechain": "^8.3.2",
@@ -49,6 +49,7 @@
         "webpack-cli": "^6.0.1"
     },
     "resolutions": {
+        "cookie": "^0.7.1",
         "fast-glob": ">=3.3.3"
     }
 }

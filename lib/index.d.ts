@@ -3,6 +3,7 @@ export * from './batcher';
 export * from './browserProvider';
 export * from './ethers';
 export * from './events';
+export * from './feeEstimator';
 export * from './idb';
 export * from './multicall';
 export * from './op';
