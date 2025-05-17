@@ -6,17 +6,22 @@ import type {
     Log,
     EventLog,
     Provider,
+    JsonRpcProvider,
     TransactionReceipt,
     TransactionResponse,
 } from 'ethers';
 import { chunk, sleep } from './utils';
 import { multiQueryFilter } from './events';
+import { getBlockReceipts } from './blockReceipts';
+import { CallTrace, traceBlock, traceTransaction } from './traceBlock';
 
 export type BatchOnProgress = (progress: {
     chunkIndex: number;
     chunkLength: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chunks: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chunksResult: any;
     resultLength: number;
 }) => void;
 
@@ -102,9 +107,9 @@ export class EthersBatcher {
         for (const chunks of chunk(inputs, this.concurrencySize * batchSize)) {
             const chunksResult = (
                 await Promise.all(
-                    chunk(chunks, batchSize).map(async (_inputs, chunkIndex) => {
+                    chunk(chunks, batchSize).map(async (_inputs, batchIndex) => {
                         // 40ms since default batch requests are collected with 50ms from provider
-                        await sleep(40 * chunkIndex);
+                        await sleep(40 * batchIndex);
 
                         return (async () => {
                             let retries = 0;
@@ -139,6 +144,7 @@ export class EthersBatcher {
                     chunkIndex,
                     chunkLength: inputs.length,
                     chunks,
+                    chunksResult,
                     resultLength: chunksResult.flat().length,
                 });
             }
@@ -194,6 +200,50 @@ export class EthersBatcher {
                 }
 
                 return tx;
+            },
+            this.txBatch,
+        );
+    }
+
+    async getBlockReceipts(provider: JsonRpcProvider, blockTags: BlockTag[]): Promise<TransactionReceipt[]> {
+        const network = await provider.getNetwork();
+
+        return (
+            await this.createBatchRequest<BlockTag, TransactionReceipt[]>(
+                blockTags,
+                async (blockTag) => {
+                    return getBlockReceipts(provider, blockTag, network);
+                },
+                this.blockBatch,
+            )
+        ).flat();
+    }
+
+    async traceBlock(
+        provider: JsonRpcProvider,
+        blockTags: BlockTag[],
+        onlyTopCall?: boolean,
+    ): Promise<CallTrace[]> {
+        return (
+            await this.createBatchRequest<BlockTag, CallTrace[]>(
+                blockTags,
+                async (blockTag) => {
+                    return traceBlock(provider, blockTag, onlyTopCall);
+                },
+                this.blockBatch,
+            )
+        ).flat();
+    }
+
+    async traceTransaction(
+        provider: JsonRpcProvider,
+        txids: string[],
+        onlyTopCall?: boolean,
+    ): Promise<CallTrace[]> {
+        return await this.createBatchRequest<string, CallTrace>(
+            txids,
+            async (txid) => {
+                return traceTransaction(provider, txid, onlyTopCall);
             },
             this.txBatch,
         );

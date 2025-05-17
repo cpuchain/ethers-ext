@@ -1,15 +1,19 @@
 import type {
+    BlockTag,
     Network,
     Networkish,
     FetchRequest,
     JsonRpcApiProviderOptions,
     PerformActionRequest,
-    JsonRpcProvider,
+    TransactionReceipt,
 } from 'ethers';
 import { ethers, assert } from './ethers';
 import { Multicall, Multicall__factory } from './typechain';
 import { MULTICALL_ADDRESS } from './multicall';
 import { formatFeeHistory } from './feeEstimator';
+import { chunk, sleep } from './utils';
+import { CallTrace, traceBlock, traceTransaction } from './traceBlock';
+import { getBlockReceipts } from './blockReceipts';
 
 const {
     AbiCoder,
@@ -91,7 +95,7 @@ export interface ProviderOptions extends JsonRpcApiProviderOptions {
     multicall?: string;
     multicallAllowFailure?: boolean;
     multicallMaxCount?: number;
-    multicallInterval?: number;
+    multicallStallTime?: number;
 }
 
 /**
@@ -106,19 +110,28 @@ export class Provider extends ethJsonRpcProvider {
     // Fetch feeHistory
     feeHistory: boolean;
 
-    // Provider without multicall capabilities
-    subProvider: Promise<JsonRpcProvider>;
-    multicall: Promise<Multicall>;
+    /**
+     * Multicall obj
+     */
+    multicall: Multicall;
 
     multicallAllowFailure: boolean;
     // To disable multicall use multicallMaxCount: 0
     multicallMaxCount: number;
-    multicallInterval: number;
+    multicallStallTime: number;
     multicallQueue: MulticallHandle[];
     multicallTimer: null | ReturnType<typeof setTimeout>;
 
     constructor(url?: string | FetchRequest, network?: Networkish, options?: ProviderOptions) {
-        super(url, network, options);
+        // 30ms (default)
+        const multicallStallTime = options?.multicallStallTime ?? 30;
+        // 10ms (default) + 30ms (default)
+        const batchStallTime = multicallStallTime + (options?.batchStallTime ?? 10);
+
+        super(url, network, {
+            ...(options || {}),
+            batchStallTime,
+        });
 
         this.feeHistory = options?.feeHistory ?? false;
 
@@ -136,22 +149,11 @@ export class Provider extends ethJsonRpcProvider {
             return _network;
         })();
 
-        this.subProvider = this.staticNetwork.then((staticNetwork) => {
-            this.#network = staticNetwork;
-
-            return new ethJsonRpcProvider(url, staticNetwork, {
-                ...options,
-                staticNetwork,
-            });
-        });
-
-        this.multicall = this.subProvider.then((provider) =>
-            Multicall__factory.connect(options?.multicall || MULTICALL_ADDRESS, provider),
-        );
+        this.multicall = Multicall__factory.connect(options?.multicall || MULTICALL_ADDRESS, this);
 
         this.multicallAllowFailure = options?.multicallAllowFailure ?? true;
         this.multicallMaxCount = options?.multicallMaxCount ?? 1000;
-        this.multicallInterval = options?.multicallInterval ?? 30;
+        this.multicallStallTime = multicallStallTime;
         this.multicallQueue = [];
         this.multicallTimer = null;
     }
@@ -227,26 +229,41 @@ export class Provider extends ethJsonRpcProvider {
         );
     }
 
+    async getBlockReceipts(blockTag: BlockTag): Promise<TransactionReceipt[]> {
+        return getBlockReceipts(this, blockTag, this.#network);
+    }
+
+    async traceBlock(blockTag: BlockTag, onlyTopCall?: boolean): Promise<CallTrace[]> {
+        return traceBlock(this, blockTag, onlyTopCall);
+    }
+
+    async traceTransaction(hash: string, onlyTopCall?: boolean): Promise<CallTrace> {
+        return traceTransaction(this, hash, onlyTopCall);
+    }
+
     /**
      * Multicaller
      */
     async _drainCalls() {
         try {
-            (
-                await (
-                    await this.multicall
-                ).aggregate3.staticCall(
-                    this.multicallQueue
-                        .slice(0, this.multicallMaxCount)
-                        .map(({ request: { to: target, data: callData } }) => {
-                            return {
+            const results = (
+                await Promise.all(
+                    chunk(this.multicallQueue, this.multicallMaxCount).map(async (_chunk, chunkIndex) => {
+                        // Avoid batching but do concurrent requests
+                        await sleep(40 * chunkIndex);
+
+                        return await this.multicall.aggregate3.staticCall(
+                            _chunk.map(({ request: { to: target, data: callData } }) => ({
                                 target,
                                 callData,
                                 allowFailure: this.multicallAllowFailure,
-                            };
-                        }),
+                            })),
+                        );
+                    }),
                 )
-            ).forEach(([status, data], i) => {
+            ).flat();
+
+            results.forEach(([status, data], i) => {
                 this.multicallQueue[i].resolve({ status, data } as MulticallResult);
                 this.multicallQueue[i].resolved = true;
             });
@@ -270,7 +287,7 @@ export class Provider extends ethJsonRpcProvider {
         if (!this.multicallTimer) {
             this.multicallTimer = setTimeout(() => {
                 this._drainCalls();
-            }, this.multicallInterval);
+            }, this.multicallStallTime);
         }
 
         return new Promise((resolve, reject) => {
@@ -283,8 +300,10 @@ export class Provider extends ethJsonRpcProvider {
         if (req.method === 'call' && this.multicallMaxCount > 0) {
             const { from, to, value, data, blockTag } = req.transaction;
 
+            const isAggregate3 = to === this.multicall.target && data?.startsWith('0x82ad56cb');
+
             // Only aggregate static calls without value and with latest block tag
-            if (!from && to && !value && (!blockTag || blockTag === 'latest')) {
+            if (!from && to && !value && (!blockTag || blockTag === 'latest') && !isAggregate3) {
                 const { status, data: result } = await this._queueCall(to, data);
 
                 if (status) {

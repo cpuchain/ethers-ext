@@ -1,5 +1,7 @@
 export * from './typechain';
 export * from './batcher';
+export * from './blockHashes';
+export * from './blockReceipts';
 export * from './browserProvider';
 export * from './ethers';
 export * from './events';
@@ -11,4 +13,5 @@ export * from './permit';
 export * from './price';
 export * from './provider';
 export * from './signer';
+export * from './traceBlock';
 export * from './utils';

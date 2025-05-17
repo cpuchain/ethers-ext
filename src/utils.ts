@@ -11,6 +11,14 @@ if (!(BigInt.prototype as any).toJSON) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isNode = !(process as any)?.browser && typeof (globalThis as any).window === 'undefined';
 
+// Create range of numbers (Useful to create an arbitary blockTags)
+export function range(start: number, stop: number, step = 1): number[] {
+    return Array(Math.ceil((stop - start) / step) + 1)
+        .fill(start)
+        .map((x, y) => x + y * step);
+}
+
+// Split array to chunk of arrays
 export function chunk<T>(arr: T[], size: number): T[][] {
     return [...Array(Math.ceil(arr.length / size))].map((_, i) => arr.slice(size * i, size + size * i));
 }

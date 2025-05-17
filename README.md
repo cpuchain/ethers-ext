@@ -28,8 +28,6 @@ Common functions used with ethers.js / idb / webcrypto
 
 - [] Example blockchain indexer
 
-- [] Types for internal transaction calls & support for batching debug_traceCall
-
 - [] ENS support for alternative chains? ( Like BNB Chain / Base for example )
 
 - [] Port for Viem

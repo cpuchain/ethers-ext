@@ -1,8 +1,10 @@
-import type { BaseContract, Block, BlockTag, ContractEventName, Log, EventLog, Provider, TransactionReceipt, TransactionResponse } from 'ethers';
+import type { BaseContract, Block, BlockTag, ContractEventName, Log, EventLog, Provider, JsonRpcProvider, TransactionReceipt, TransactionResponse } from 'ethers';
+import { CallTrace } from './traceBlock';
 export type BatchOnProgress = (progress: {
     chunkIndex: number;
     chunkLength: number;
     chunks: any;
+    chunksResult: any;
     resultLength: number;
 }) => void;
 export interface EthersBatcherParams {
@@ -40,6 +42,9 @@ export declare class EthersBatcher {
     getBlocks(provider: Provider, blockTags: BlockTag[], prefetchTxs?: boolean): Promise<Block[]>;
     getTransactions(provider: Provider, txids: string[]): Promise<TransactionResponse[]>;
     getTransactionReceipts(provider: Provider, txids: string[]): Promise<TransactionReceipt[]>;
+    getBlockReceipts(provider: JsonRpcProvider, blockTags: BlockTag[]): Promise<TransactionReceipt[]>;
+    traceBlock(provider: JsonRpcProvider, blockTags: BlockTag[], onlyTopCall?: boolean): Promise<CallTrace[]>;
+    traceTransaction(provider: JsonRpcProvider, txids: string[], onlyTopCall?: boolean): Promise<CallTrace[]>;
     /**
      * Get Logs / DecodedLogs for an address / addresses / contract
      */

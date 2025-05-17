@@ -1,6 +1,7 @@
-import type { Network, Networkish, FetchRequest, JsonRpcApiProviderOptions, PerformActionRequest, JsonRpcProvider } from 'ethers';
+import type { BlockTag, Network, Networkish, FetchRequest, JsonRpcApiProviderOptions, PerformActionRequest, TransactionReceipt } from 'ethers';
 import { Multicall } from './typechain';
-declare const ethJsonRpcProvider: typeof JsonRpcProvider, ethFeeData: typeof import("ethers").FeeData;
+import { CallTrace } from './traceBlock';
+declare const ethJsonRpcProvider: typeof import("ethers").JsonRpcProvider, ethFeeData: typeof import("ethers").FeeData;
 export interface MulticallResult {
     status: boolean;
     data: string;
@@ -29,7 +30,7 @@ export interface ProviderOptions extends JsonRpcApiProviderOptions {
     multicall?: string;
     multicallAllowFailure?: boolean;
     multicallMaxCount?: number;
-    multicallInterval?: number;
+    multicallStallTime?: number;
 }
 /**
  * Static network & Multicaller by default
@@ -40,11 +41,13 @@ export declare class Provider extends ethJsonRpcProvider {
     #private;
     staticNetwork: Promise<Network>;
     feeHistory: boolean;
-    subProvider: Promise<JsonRpcProvider>;
-    multicall: Promise<Multicall>;
+    /**
+     * Multicall obj
+     */
+    multicall: Multicall;
     multicallAllowFailure: boolean;
     multicallMaxCount: number;
-    multicallInterval: number;
+    multicallStallTime: number;
     multicallQueue: MulticallHandle[];
     multicallTimer: null | ReturnType<typeof setTimeout>;
     constructor(url?: string | FetchRequest, network?: Networkish, options?: ProviderOptions);
@@ -59,6 +62,9 @@ export declare class Provider extends ethJsonRpcProvider {
      * using the value as is could throw an error from RPC as maxFeePerGas should be always bigger than maxPriorityFeePerGas
      */
     getFeeData(): Promise<FeeDataExt>;
+    getBlockReceipts(blockTag: BlockTag): Promise<TransactionReceipt[]>;
+    traceBlock(blockTag: BlockTag, onlyTopCall?: boolean): Promise<CallTrace[]>;
+    traceTransaction(hash: string, onlyTopCall?: boolean): Promise<CallTrace>;
     /**
      * Multicaller
      */
