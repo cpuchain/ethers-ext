@@ -1,6 +1,7 @@
 import type { BaseContract, Block, BlockTag, ContractEventName, Log, EventLog, Provider, JsonRpcProvider, TransactionReceipt, TransactionResponse } from 'ethers';
 import { CallTrace } from './traceBlock';
 export type BatchOnProgress = (progress: {
+    type: string;
     chunkIndex: number;
     chunkLength: number;
     chunks: any;
@@ -38,7 +39,7 @@ export declare class EthersBatcher {
     retryOn: number;
     onProgress?: BatchOnProgress;
     constructor({ concurrencySize, blockBatch, txBatch, eventBatch, eventRange, delays, retry, retryMax, retryOn, onProgress, }: EthersBatcherParams);
-    createBatchRequest<Input, Output>(inputs: Input[], outputFunc: (input: Input) => Promise<Output>, batchSize: number): Promise<Output[]>;
+    createBatchRequest<Input, Output>(type: string, inputs: Input[], outputFunc: (input: Input) => Promise<Output>, batchSize: number): Promise<Output[]>;
     getBlocks(provider: Provider, blockTags: BlockTag[], prefetchTxs?: boolean): Promise<Block[]>;
     getTransactions(provider: Provider, txids: string[]): Promise<TransactionResponse[]>;
     getTransactionReceipts(provider: Provider, txids: string[]): Promise<TransactionReceipt[]>;

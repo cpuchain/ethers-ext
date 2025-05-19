@@ -11,6 +11,29 @@ if (!(BigInt.prototype as any).toJSON) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isNode = !(process as any)?.browser && typeof (globalThis as any).window === 'undefined';
 
+// Create range for syncing blocks
+export function createBlockTags(
+    fromBlock: number,
+    toBlock: number,
+    batchSize = 1000,
+): { fromBlock: number; toBlock: number }[] {
+    const batches: { fromBlock: number; toBlock: number }[] = [];
+
+    if (toBlock - fromBlock > batchSize) {
+        for (let i = fromBlock; i < toBlock + 1; i += batchSize) {
+            const j = i + batchSize - 1 > toBlock ? toBlock : i + batchSize - 1;
+
+            batches.push({ fromBlock: i, toBlock: j });
+        }
+    } else if (toBlock - fromBlock >= 0) {
+        batches.push({ fromBlock, toBlock });
+    } else {
+        throw new Error(`Invalid block range ${fromBlock}~${toBlock}`);
+    }
+
+    return batches;
+}
+
 // Create range of numbers (Useful to create an arbitary blockTags)
 export function range(start: number, stop: number, step = 1): number[] {
     return Array(Math.ceil((stop - start) / step) + 1)

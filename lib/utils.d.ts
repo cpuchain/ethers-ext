@@ -1,5 +1,9 @@
 import { webcrypto } from 'crypto';
 export declare const isNode: boolean;
+export declare function createBlockTags(fromBlock: number, toBlock: number, batchSize?: number): {
+    fromBlock: number;
+    toBlock: number;
+}[];
 export declare function range(start: number, stop: number, step?: number): number[];
 export declare function chunk<T>(arr: T[], size: number): T[][];
 export declare function sleep(ms: number): Promise<void>;

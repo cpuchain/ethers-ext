@@ -146,6 +146,8 @@ export class Provider extends ethJsonRpcProvider {
                 throw new Error('Wrong network');
             }
 
+            this.#network = _network;
+
             return _network;
         })();
 
@@ -164,7 +166,15 @@ export class Provider extends ethJsonRpcProvider {
     }
 
     async _detectNetwork(): Promise<Network> {
-        return this.staticNetwork;
+        try {
+            return await this.staticNetwork;
+        } catch (error) {
+            // Prevent internal loop to keep alive
+            if (!super.destroyed) {
+                super.destroy();
+            }
+            throw error;
+        }
     }
 
     /**

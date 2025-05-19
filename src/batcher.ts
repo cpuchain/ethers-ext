@@ -16,6 +16,7 @@ import { getBlockReceipts } from './blockReceipts';
 import { CallTrace, traceBlock, traceTransaction } from './traceBlock';
 
 export type BatchOnProgress = (progress: {
+    type: string;
     chunkIndex: number;
     chunkLength: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,6 +98,7 @@ export class EthersBatcher {
     }
 
     async createBatchRequest<Input, Output>(
+        type: string,
         inputs: Input[],
         outputFunc: (input: Input) => Promise<Output>,
         batchSize: number,
@@ -141,6 +143,7 @@ export class EthersBatcher {
 
             if (this.onProgress) {
                 this.onProgress({
+                    type,
                     chunkIndex,
                     chunkLength: inputs.length,
                     chunks,
@@ -159,6 +162,7 @@ export class EthersBatcher {
 
     async getBlocks(provider: Provider, blockTags: BlockTag[], prefetchTxs?: boolean): Promise<Block[]> {
         return await this.createBatchRequest<BlockTag, Block>(
+            'Blocks',
             blockTags,
             async (blockTag) => {
                 const block = await provider.getBlock(blockTag, prefetchTxs);
@@ -175,6 +179,7 @@ export class EthersBatcher {
 
     async getTransactions(provider: Provider, txids: string[]): Promise<TransactionResponse[]> {
         return await this.createBatchRequest<string, TransactionResponse>(
+            'Transactions',
             txids,
             async (txid) => {
                 const tx = await provider.getTransaction(txid);
@@ -191,6 +196,7 @@ export class EthersBatcher {
 
     async getTransactionReceipts(provider: Provider, txids: string[]): Promise<TransactionReceipt[]> {
         return await this.createBatchRequest<string, TransactionReceipt>(
+            'TransactionReceipts',
             txids,
             async (txid) => {
                 const tx = await provider.getTransactionReceipt(txid);
@@ -210,6 +216,7 @@ export class EthersBatcher {
 
         return (
             await this.createBatchRequest<BlockTag, TransactionReceipt[]>(
+                'BlockReceipts',
                 blockTags,
                 async (blockTag) => {
                     return getBlockReceipts(provider, blockTag, network);
@@ -226,6 +233,7 @@ export class EthersBatcher {
     ): Promise<CallTrace[]> {
         return (
             await this.createBatchRequest<BlockTag, CallTrace[]>(
+                'InternalTransactions',
                 blockTags,
                 async (blockTag) => {
                     return traceBlock(provider, blockTag, onlyTopCall);
@@ -241,6 +249,7 @@ export class EthersBatcher {
         onlyTopCall?: boolean,
     ): Promise<CallTrace[]> {
         return await this.createBatchRequest<string, CallTrace>(
+            'InternalTransactions',
             txids,
             async (txid) => {
                 return traceTransaction(provider, txid, onlyTopCall);
@@ -282,6 +291,7 @@ export class EthersBatcher {
 
         return (
             await this.createBatchRequest<{ fromBlock: number; toBlock: number }, (Log | EventLog)[]>(
+                'Events',
                 eventTags,
                 async ({ fromBlock, toBlock }) => {
                     if (address || !contract) {
