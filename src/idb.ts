@@ -7,7 +7,7 @@ declare global {
     }
 }
 
-export const IDB_ERR = 'A mutation operation was attempted on a database that did not allow mutations.';
+const IDB_ERR = 'A mutation operation was attempted on a database that did not allow mutations.';
 
 export interface IDBStore {
     name: string;

@@ -1,6 +1,6 @@
 {
     "name": "ethers-ext",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "Common functions used with ethers.js / idb / webcrypto",
     "license": "MIT",
     "author": "CPUchain",

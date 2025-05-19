@@ -11,16 +11,16 @@ const config = {
                 options: {
                     loader: 'ts',
                     target: 'ES2022',
-                }
-            }
-        ]
+                },
+            },
+        ],
     },
     entry: './src/index.ts',
     output: {
         filename: 'ethExt.umd.min.js',
         path: path.resolve(__dirname, './lib'),
         library: 'ethExt',
-        libraryTarget: 'umd'
+        libraryTarget: 'umd',
     },
     plugins: [
         new BannerPlugin({
@@ -47,10 +47,31 @@ module.exports = [
             filename: 'ethExt.umd.js',
             path: path.resolve(__dirname, './lib'),
             library: 'ethExt',
-            libraryTarget: 'umd'
+            libraryTarget: 'umd',
         },
         optimization: {
             minimize: false,
         },
-    }
+    },
+    {
+        ...config,
+        entry: './src/idb.ts',
+        output: {
+            filename: 'idb.umd.min.js',
+            path: path.resolve(__dirname, './lib'),
+            libraryTarget: 'umd',
+        },
+    },
+    {
+        ...config,
+        entry: './src/idb.ts',
+        output: {
+            filename: 'idb.umd.js',
+            path: path.resolve(__dirname, './lib'),
+            libraryTarget: 'umd',
+        },
+        optimization: {
+            minimize: false,
+        },
+    },
 ]

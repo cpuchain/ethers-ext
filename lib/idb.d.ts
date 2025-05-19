@@ -4,7 +4,6 @@ declare global {
         idb?: typeof idb;
     }
 }
-export declare const IDB_ERR = "A mutation operation was attempted on a database that did not allow mutations.";
 export interface IDBStore {
     name: string;
     keyPath?: string;
