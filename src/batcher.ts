@@ -36,7 +36,6 @@ export interface EthersBatcherParams {
 
     delays?: number;
 
-    retry?: boolean;
     retryMax?: number;
     retryOn?: number;
 
@@ -63,7 +62,6 @@ export class EthersBatcher {
 
     delays?: number;
 
-    retry: boolean; // Boolean to enable retries
     retryMax: number; // Max retry count
     retryOn: number; // Retry on millisecond
 
@@ -76,7 +74,6 @@ export class EthersBatcher {
         eventBatch,
         eventRange,
         delays,
-        retry,
         retryMax,
         retryOn,
         onProgress,
@@ -90,8 +87,7 @@ export class EthersBatcher {
 
         this.delays = delays;
 
-        this.retry = retry ?? true;
-        this.retryMax = retryMax || 3;
+        this.retryMax = retryMax || 2;
         this.retryOn = retryOn || 500;
 
         this.onProgress = onProgress;
@@ -117,10 +113,7 @@ export class EthersBatcher {
                             let retries = 0;
                             let err;
 
-                            while (
-                                (!this.retry && retries === 0) ||
-                                (this.retry && retries < this.retryMax)
-                            ) {
+                            while (retries <= this.retryMax) {
                                 try {
                                     return await Promise.all(_inputs.map((input) => outputFunc(input)));
                                 } catch (e) {

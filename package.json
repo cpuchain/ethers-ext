@@ -1,6 +1,6 @@
 {
     "name": "ethers-ext",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "description": "Common functions used with ethers.js / idb / webcrypto",
     "license": "MIT",
     "author": "CPUchain",
@@ -45,7 +45,7 @@
         "tsc": "^2.0.4",
         "typechain": "^8.3.2",
         "typescript": "^5.8.3",
-        "webpack": "^5.99.8",
+        "webpack": "^5.99.9",
         "webpack-cli": "^6.0.1"
     },
     "resolutions": {

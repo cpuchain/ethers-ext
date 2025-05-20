@@ -9,7 +9,7 @@ import type {
     TransactionResponseParams,
 } from 'ethers';
 import { ethers } from './ethers';
-import { OpGasPriceOracle, OpGasPriceOracle__factory } from './typechain';
+import { Multicall, OpGasPriceOracle, OpGasPriceOracle__factory } from './typechain';
 import { getL1Fee } from './op';
 
 const {
@@ -43,7 +43,7 @@ export async function populateTransaction(
     signer: SignerExt,
     tx: TransactionRequestExt = {},
 ): Promise<TransactionRequestExt> {
-    const provider = (signer.appProvider || signer.provider) as Provider;
+    const provider = (signer.appProvider || signer.provider) as Provider & { multicall?: Multicall };
     const signerAddress = signer.address || (await signer.getAddress());
 
     const gasPriceBump = (await signer.gasPriceBump?.()) || DEFAULT_GAS_PRICE_BUMP;
@@ -58,22 +58,24 @@ export async function populateTransaction(
 
     const [chainId, feeData, nonce, balance, l1Fee] = await Promise.all([
         tx.chainId ? undefined : provider.getNetwork().then(({ chainId }) => chainId),
-        tx.maxFeePerGas || tx.gasPrice || tx.maxFeePerGas === 0n || tx.gasPrice === 0n
+        typeof tx.maxFeePerGas === 'bigint' || typeof tx.gasPrice === 'bigint'
             ? undefined
             : provider.getFeeData(),
-        tx.nonce || tx.nonce === 0 ? undefined : provider.getTransactionCount(signerAddress, 'pending'),
-        tx.txCost || !signer.autoValue ? undefined : provider.getBalance(signerAddress),
+        typeof tx.nonce === 'number' ? undefined : provider.getTransactionCount(signerAddress, 'pending'),
+        typeof tx.txCost === 'bigint' || !signer.autoValue
+            ? undefined
+            : (provider.multicall?.getEthBalance || provider.getBalance)(signerAddress),
         tx.l1Fee || !signer.opGasPriceOracle ? 0n : getL1Fee(signer.opGasPriceOracle, tx),
     ]);
 
-    if (chainId) {
+    if (typeof chainId === 'bigint') {
         tx.chainId = chainId;
     }
 
     let gasPrice = 0n;
 
     if (feeData) {
-        if (feeData.maxFeePerGas || feeData.maxFeePerGas === 0n) {
+        if (feeData.maxFeePerGas) {
             if (!tx.type) {
                 tx.type = 2;
             }
@@ -92,7 +94,7 @@ export async function populateTransaction(
             delete tx.gasPrice;
 
             gasPrice = tx.maxFeePerGas + (tx.maxPriorityFeePerGas as bigint);
-        } else if (feeData.gasPrice || feeData.gasPrice === 0n) {
+        } else if (typeof feeData.gasPrice === 'bigint') {
             if (!tx.type && tx.type !== 0) {
                 tx.type = 0;
             }
@@ -108,7 +110,7 @@ export async function populateTransaction(
             : BigInt(tx.gasPrice || 0n);
     }
 
-    if (nonce || nonce === 0) {
+    if (typeof nonce === 'number') {
         tx.nonce = nonce;
     }
 

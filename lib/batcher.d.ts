@@ -15,7 +15,6 @@ export interface EthersBatcherParams {
     eventBatch?: number;
     eventRange?: number;
     delays?: number;
-    retry?: boolean;
     retryMax?: number;
     retryOn?: number;
     onProgress?: BatchOnProgress;
@@ -34,11 +33,10 @@ export declare class EthersBatcher {
     eventBatch: number;
     eventRange: number;
     delays?: number;
-    retry: boolean;
     retryMax: number;
     retryOn: number;
     onProgress?: BatchOnProgress;
-    constructor({ concurrencySize, blockBatch, txBatch, eventBatch, eventRange, delays, retry, retryMax, retryOn, onProgress, }: EthersBatcherParams);
+    constructor({ concurrencySize, blockBatch, txBatch, eventBatch, eventRange, delays, retryMax, retryOn, onProgress, }: EthersBatcherParams);
     createBatchRequest<Input, Output>(type: string, inputs: Input[], outputFunc: (input: Input) => Promise<Output>, batchSize: number): Promise<Output[]>;
     getBlocks(provider: Provider, blockTags: BlockTag[], prefetchTxs?: boolean): Promise<Block[]>;
     getTransactions(provider: Provider, txids: string[]): Promise<TransactionResponse[]>;
