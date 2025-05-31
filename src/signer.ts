@@ -185,7 +185,7 @@ export class Wallet extends ethWallet {
     constructor(key: string | SigningKey, provider?: Provider, options: WalletOptions = {}) {
         super(key, provider);
 
-        this.autoValue = options.autoValue ?? true;
+        this.autoValue = options.autoValue || false;
         this.gasPriceBump = options.gasPriceBump;
         this.gasLimitBump = options.gasLimitBump;
         this.customPriorityFee = options.customPriorityFee;
@@ -219,7 +219,7 @@ export class VoidSigner extends ethVoidSigner {
     constructor(address: string, provider?: Provider, options: WalletOptions = {}) {
         super(address, provider);
 
-        this.autoValue = options.autoValue ?? true;
+        this.autoValue = options.autoValue || false;
         this.gasPriceBump = options.gasPriceBump;
         this.gasLimitBump = options.gasLimitBump;
         this.customPriorityFee = options.customPriorityFee;
@@ -272,7 +272,7 @@ export class JsonRpcSigner extends ethJsonRpcSigner {
 
         const options: WalletOptions = provider.options || {};
 
-        this.autoValue = options.autoValue ?? true;
+        this.autoValue = options.autoValue || false;
         this.gasPriceBump = options.gasPriceBump;
         this.gasLimitBump = options.gasLimitBump;
         this.customPriorityFee = options.customPriorityFee;

@@ -26,13 +26,8 @@ export type BatchOnProgress = (progress: {
     resultLength: number;
 }) => void;
 
-export interface EthersBatcherParams {
+export interface CreateBatchRequestParams {
     concurrencySize?: number;
-
-    blockBatch?: number;
-    txBatch?: number;
-    eventBatch?: number;
-    eventRange?: number;
 
     delays?: number;
 
@@ -40,6 +35,80 @@ export interface EthersBatcherParams {
     retryOn?: number;
 
     onProgress?: BatchOnProgress;
+}
+
+export async function createBatchRequest<Input, Output>(
+    params: CreateBatchRequestParams = {},
+    type: string,
+    inputs: Input[],
+    outputFunc: (input: Input) => Promise<Output>,
+    batchSize: number,
+): Promise<Output[]> {
+    const concurrencySize = params.concurrencySize || 10;
+    const retryMax = params.retryMax || 2;
+    const retryOn = params.retryOn || 500;
+
+    let chunkIndex = 0;
+    const results: Output[] = [];
+
+    for (const chunks of chunk(inputs, concurrencySize * batchSize)) {
+        const timeStart = Date.now();
+
+        const chunksResult = (
+            await Promise.all(
+                chunk(chunks, batchSize).map(async (_inputs, batchIndex) => {
+                    // 40ms since default batch requests are collected with 50ms from provider
+                    await sleep(40 * batchIndex);
+
+                    return (async () => {
+                        let retries = 0;
+                        let err;
+
+                        while (retries <= retryMax) {
+                            try {
+                                return await Promise.all(_inputs.map((input) => outputFunc(input)));
+                            } catch (e) {
+                                retries++;
+                                err = e;
+
+                                await sleep(retryOn);
+                            }
+                        }
+
+                        throw err;
+                    })();
+                }),
+            )
+        ).flat();
+
+        results.push(...chunksResult);
+
+        chunkIndex += chunks.length;
+
+        if (params.onProgress) {
+            params.onProgress({
+                type,
+                chunkIndex,
+                chunkLength: inputs.length,
+                chunks,
+                chunksResult,
+                resultLength: chunksResult.flat().length,
+            });
+        }
+
+        if (params.delays && Date.now() - timeStart > params.delays) {
+            await sleep(Date.now() - timeStart - params.delays);
+        }
+    }
+
+    return results;
+}
+
+export interface EthersBatcherParams extends CreateBatchRequestParams {
+    blockBatch?: number;
+    txBatch?: number;
+    eventBatch?: number;
+    eventRange?: number;
 }
 
 /**
@@ -99,58 +168,7 @@ export class EthersBatcher {
         outputFunc: (input: Input) => Promise<Output>,
         batchSize: number,
     ): Promise<Output[]> {
-        let chunkIndex = 0;
-        const results: Output[] = [];
-
-        for (const chunks of chunk(inputs, this.concurrencySize * batchSize)) {
-            const chunksResult = (
-                await Promise.all(
-                    chunk(chunks, batchSize).map(async (_inputs, batchIndex) => {
-                        // 40ms since default batch requests are collected with 50ms from provider
-                        await sleep(40 * batchIndex);
-
-                        return (async () => {
-                            let retries = 0;
-                            let err;
-
-                            while (retries <= this.retryMax) {
-                                try {
-                                    return await Promise.all(_inputs.map((input) => outputFunc(input)));
-                                } catch (e) {
-                                    retries++;
-                                    err = e;
-
-                                    await sleep(this.retryOn);
-                                }
-                            }
-
-                            throw err;
-                        })();
-                    }),
-                )
-            ).flat();
-
-            results.push(...chunksResult);
-
-            chunkIndex += chunks.length;
-
-            if (this.onProgress) {
-                this.onProgress({
-                    type,
-                    chunkIndex,
-                    chunkLength: inputs.length,
-                    chunks,
-                    chunksResult,
-                    resultLength: chunksResult.flat().length,
-                });
-            }
-
-            if (this.delays) {
-                await sleep(this.delays);
-            }
-        }
-
-        return results;
+        return createBatchRequest<Input, Output>(this, type, inputs, outputFunc, batchSize);
     }
 
     async getBlocks(provider: Provider, blockTags: BlockTag[], prefetchTxs?: boolean): Promise<Block[]> {

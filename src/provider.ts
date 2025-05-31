@@ -6,6 +6,7 @@ import type {
     JsonRpcApiProviderOptions,
     PerformActionRequest,
     TransactionReceipt,
+    TransactionResponse,
 } from 'ethers';
 import { ethers, assert } from './ethers';
 import { Multicall, Multicall__factory } from './typechain';
@@ -237,6 +238,24 @@ export class Provider extends ethJsonRpcProvider {
             maxPriorityFeePerGasMedium,
             maxPriorityFeePerGasSlow,
         );
+    }
+
+    /**
+     * Wrapper around waitForTransaction to have default confirmation
+     * Doesn't throw on timeout and instead returns null
+     */
+    async wait(hashOrTx: null | string | TransactionResponse): Promise<null | TransactionReceipt> {
+        try {
+            if (!hashOrTx) {
+                return null;
+            }
+
+            const hash = (hashOrTx as TransactionResponse)?.hash || (hashOrTx as string);
+
+            return await this.waitForTransaction(hash, 1, 60 * 1000);
+        } catch {
+            return null;
+        }
     }
 
     async getBlockReceipts(blockTag: BlockTag): Promise<TransactionReceipt[]> {

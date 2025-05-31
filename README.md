@@ -1,5 +1,7 @@
 # ethers-ext
 
+[![NPM Version](https://img.shields.io/npm/v/ethers-ext)](https://www.npmjs.com/package/ethers-ext)
+
 Common functions used with ethers.js / idb / webcrypto
 
 ### Features

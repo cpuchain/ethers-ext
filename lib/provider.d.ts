@@ -1,4 +1,4 @@
-import type { BlockTag, Network, Networkish, FetchRequest, JsonRpcApiProviderOptions, PerformActionRequest, TransactionReceipt } from 'ethers';
+import type { BlockTag, Network, Networkish, FetchRequest, JsonRpcApiProviderOptions, PerformActionRequest, TransactionReceipt, TransactionResponse } from 'ethers';
 import { Multicall } from './typechain';
 import { CallTrace } from './traceBlock';
 declare const ethJsonRpcProvider: typeof import("ethers").JsonRpcProvider, ethFeeData: typeof import("ethers").FeeData;
@@ -62,6 +62,11 @@ export declare class Provider extends ethJsonRpcProvider {
      * using the value as is could throw an error from RPC as maxFeePerGas should be always bigger than maxPriorityFeePerGas
      */
     getFeeData(): Promise<FeeDataExt>;
+    /**
+     * Wrapper around waitForTransaction to have default confirmation
+     * Doesn't throw on timeout and instead returns null
+     */
+    wait(hashOrTx: null | string | TransactionResponse): Promise<null | TransactionReceipt>;
     getBlockReceipts(blockTag: BlockTag): Promise<TransactionReceipt[]>;
     traceBlock(blockTag: BlockTag, onlyTopCall?: boolean): Promise<CallTrace[]>;
     traceTransaction(hash: string, onlyTopCall?: boolean): Promise<CallTrace>;

@@ -8,16 +8,19 @@ export type BatchOnProgress = (progress: {
     chunksResult: any;
     resultLength: number;
 }) => void;
-export interface EthersBatcherParams {
+export interface CreateBatchRequestParams {
     concurrencySize?: number;
-    blockBatch?: number;
-    txBatch?: number;
-    eventBatch?: number;
-    eventRange?: number;
     delays?: number;
     retryMax?: number;
     retryOn?: number;
     onProgress?: BatchOnProgress;
+}
+export declare function createBatchRequest<Input, Output>(params: CreateBatchRequestParams | undefined, type: string, inputs: Input[], outputFunc: (input: Input) => Promise<Output>, batchSize: number): Promise<Output[]>;
+export interface EthersBatcherParams extends CreateBatchRequestParams {
+    blockBatch?: number;
+    txBatch?: number;
+    eventBatch?: number;
+    eventRange?: number;
 }
 /**
  * Helper class to fetch large amount of blocks / transactions / contract events
