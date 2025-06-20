@@ -96,8 +96,8 @@ export async function createBatchRequest<Input, Output>(
             });
         }
 
-        if (params.delays && Date.now() - timeStart > params.delays) {
-            await sleep(Date.now() - timeStart - params.delays);
+        if (params.delays && Date.now() - timeStart < params.delays) {
+            await sleep(params.delays - (Date.now() - timeStart));
         }
     }
 

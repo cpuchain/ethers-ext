@@ -11,6 +11,7 @@ import type {
 import { ethers, assert } from './ethers';
 import { Multicall, Multicall__factory } from './typechain';
 import { MULTICALL_ADDRESS } from './multicall';
+import { chainNames, EnsResolver } from './ens';
 import { formatFeeHistory } from './feeEstimator';
 import { chunk, sleep } from './utils';
 import { CallTrace, traceBlock, traceTransaction } from './traceBlock';
@@ -91,6 +92,8 @@ export class FeeDataExt extends ethFeeData {
 export interface ProviderOptions extends JsonRpcApiProviderOptions {
     chainId?: bigint | number;
 
+    ensResolver?: typeof EnsResolver;
+
     feeHistory?: boolean;
 
     multicall?: string;
@@ -107,6 +110,8 @@ export interface ProviderOptions extends JsonRpcApiProviderOptions {
 export class Provider extends ethJsonRpcProvider {
     staticNetwork: Promise<Network>;
     #network?: Network;
+
+    ensResolver: Promise<typeof EnsResolver>;
 
     // Fetch feeHistory
     feeHistory: boolean;
@@ -151,6 +156,21 @@ export class Provider extends ethJsonRpcProvider {
 
             return _network;
         })();
+
+        // Set default ENS resolver
+        this.ensResolver = this.staticNetwork.then(({ chainId }) => {
+            const ensType = chainNames[Number(chainId)] || 'ENS';
+
+            if (options?.ensResolver) {
+                return options.ensResolver;
+            }
+
+            if (ensType === 'ENS') {
+                return EnsResolver;
+            }
+
+            throw new Error('Unsupported EMS type');
+        });
 
         this.multicall = Multicall__factory.connect(options?.multicall || MULTICALL_ADDRESS, this);
 
@@ -238,6 +258,17 @@ export class Provider extends ethJsonRpcProvider {
             maxPriorityFeePerGasMedium,
             maxPriorityFeePerGasSlow,
         );
+    }
+
+    /**
+     * Override EnsResolver to use our optimized resolver class object
+     */
+    async getResolver(name: string): Promise<null | EnsResolver> {
+        return (await this.ensResolver).fromName(this, name);
+    }
+
+    async lookupAddress(address: string, reverseCheck?: boolean): Promise<null | string> {
+        return (await this.ensResolver).lookupAddress(this, address, reverseCheck);
     }
 
     /**

@@ -17,9 +17,9 @@ const config = {
     },
     entry: './src/index.ts',
     output: {
-        filename: 'ethExt.umd.min.js',
+        filename: 'ethersOpt.umd.min.js',
         path: path.resolve(__dirname, './lib'),
-        library: 'ethExt',
+        library: 'ethersOpt',
         libraryTarget: 'umd',
     },
     plugins: [
@@ -44,9 +44,9 @@ module.exports = [
     {
         ...config,
         output: {
-            filename: 'ethExt.umd.js',
+            filename: 'ethersOpt.umd.js',
             path: path.resolve(__dirname, './lib'),
-            library: 'ethExt',
+            library: 'ethersOpt',
             libraryTarget: 'umd',
         },
         optimization: {

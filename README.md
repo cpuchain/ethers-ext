@@ -1,8 +1,8 @@
-# ethers-ext
+# ethers-opt
 
-[![NPM Version](https://img.shields.io/npm/v/ethers-ext)](https://www.npmjs.com/package/ethers-ext)
+[![NPM Version](https://img.shields.io/npm/v/ethers-opt)](https://www.npmjs.com/package/ethers-opt)
 
-Common functions used with ethers.js / idb / webcrypto
+Collection of heavily optimized functions for ethers.js V6
 
 ### Features
 
@@ -39,7 +39,7 @@ Common functions used with ethers.js / idb / webcrypto
 ### Quick Start
 
 ```ts
-import { Provider, VoidSigner } from 'ethers-ext';
+import { Provider, VoidSigner } from 'ethers-opt';
 
 async function main() {
     const provider = new Provider('https://rpc.mevblocker.io', undefined, {

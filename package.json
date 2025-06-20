@@ -1,32 +1,40 @@
 {
-    "name": "ethers-ext",
-    "version": "1.0.11",
-    "description": "Common functions used with ethers.js / idb / webcrypto",
+    "name": "ethers-opt",
+    "version": "1.0.0",
+    "description": "Collection of heavily optimized functions for ethers.js V6",
     "license": "MIT",
     "author": "CPUchain",
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
+    "main": "./lib/index.js",
+    "module": "./lib.esm/index.js",
+    "types": "./lib/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./lib.esm/index.js",
+            "require": "./lib/index.js",
+            "default": "./lib/index.js"
+        }
+    },
     "keywords": ["ethers", "ethereum", "web3", "dapp", "browser"],
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/cpuchain/ethers-ext.git"
+        "url": "git+https://github.com/cpuchain/ethers-opt.git"
     },
     "scripts": {
         "lint": "eslint src/**/*.ts --ignore-pattern src/typechain",
         "typechain": "typechain --target ethers-v6 --out-dir src/typechain src/abi/*.json && ts-node scripts/typechain.ts",
-        "types": "tsc -p tsconfig.types.json --declaration",
+        "types": "tsc -p tsconfig.types.json --declaration && tsc -p tsconfig.esm.json --declaration",
         "build": "yarn types && webpack",
         "test": "hardhat test"
     },
     "dependencies": {
-        "ethers": "^6.14.3"
+        "ethers": "^6.14.4"
     },
     "devDependencies": {
         "@cpuchain/eslint": "^1.0.5",
-        "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
-        "@nomicfoundation/hardhat-ethers": "^3.0.8",
+        "@nomicfoundation/hardhat-chai-matchers": "^2.0.9",
+        "@nomicfoundation/hardhat-ethers": "^3.0.9",
         "@nomicfoundation/hardhat-ignition": "^0.15.11",
-        "@nomicfoundation/hardhat-ignition-ethers": "^0.15.11",
+        "@nomicfoundation/hardhat-ignition-ethers": "^0.15.12",
         "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
         "@nomicfoundation/hardhat-toolbox": "^5.0.0",
         "@nomicfoundation/hardhat-verify": "^2.0.14",
@@ -37,8 +45,8 @@
         "@types/node": "^22.15.29",
         "chai": "4.5.0",
         "esbuild-loader": "^4.3.0",
-        "hardhat": "^2.24.1",
-        "hardhat-gas-reporter": "^2.2.3",
+        "hardhat": "^2.24.3",
+        "hardhat-gas-reporter": "^2.3.0",
         "idb": "^8.0.3",
         "solidity-coverage": "^0.8.16",
         "ts-node": "^10.9.2",

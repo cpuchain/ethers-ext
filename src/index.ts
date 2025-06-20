@@ -1,3 +1,4 @@
+export * from './ens';
 export * from './typechain';
 export * from './batcher';
 export * from './blockHashes';
